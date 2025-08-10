@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  invoice-reader:
+    build: .
+    container_name: invoice-reader
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=info
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app:ro
+      - ./config.yml:/app/config.yml:ro
+    # Optionally define resources limits here
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.00'
+    #       memory: 512M
