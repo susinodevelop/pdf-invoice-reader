@@ -1,52 +1,89 @@
-"""
-Invoice processing API controller.
+from __future__ import annotations
 
-This controller exposes a single endpoint that accepts one or more PDF
-files along with some parameters describing how the PDFs should be
-processed. In this scaffold implementation the endpoint simply
-returns a basic structure for each file without performing real
-extraction logic. The structure is designed to reflect the expected
-shape of a future, more complete implementation.
-"""
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
+from typing import List, Optional, Any, Dict
+from time import perf_counter
+from pathlib import Path
+import json
+import yaml
 
-from typing import List, Optional
+from ..validation.invoice_request_validation import validate_request
+from ...modules.pdf_reader.pdf_reader import PDFReader
+from ...modules.processing_core.processor import ProcessingService
 
-from fastapi import APIRouter, UploadFile, File, Form
+router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
-router = APIRouter(prefix="", tags=["invoices"])
+
+def _load_config() -> dict:
+    """
+    Carga el fichero YAML de configuración desde backend/config/config.yml.
+    """
+    cfg_path = Path(__file__).resolve().parents[3] / "config" / "config.yml"
+    if not cfg_path.exists():
+        return {}
+    with cfg_path.open("r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh) or {}
+
 
 @router.post("/process-pdf")
 async def process_pdf(
-    files: List[UploadFile] = File(..., description="One or more PDF files to process"),
-    asesoria: str = Form(..., description="Identifier for the client/asesoria"),
-    forzarOCR: Optional[bool] = Form(False, description="Force OCR processing")
-) -> list:
-    """Stub implementation of the PDF processing endpoint.
-
-    For each uploaded file this returns a dictionary with placeholder
-    fields and confidence scores. Real extraction and template
-    selection logic should be added in future iterations.
-
-    Args:
-        files: List of uploaded PDF files.
-        asesoria: Name of the asesoria/client.
-        forzarOCR: Whether to force OCR processing.
-
-    Returns:
-        A list of result dictionaries, one per file.
+    files: List[UploadFile] = File(..., description="Lista de archivos PDF"),
+    asesoria: str = Form(..., description="Nombre de la asesoría"),
+    forzarOCR: Optional[bool] = Form(False, description="Forzar OCR"),
+    opciones: Optional[str] = Form(None, description="Opciones adicionales en JSON"),
+) -> Any:
     """
-    results = []
-    for uploaded_file in files:
-        result = {
-            "filename": uploaded_file.filename,
-            "asesoria": asesoria,
-            "template": "default/default.yml",
-            "fields": {
-                "issue_date": {"value": None, "confidence": 0.0},
-                "issuer": {"value": None, "confidence": 0.0},
-                "nif": {"value": None, "confidence": 0.0},
-            },
-            "overall_confidence": 0.0,
-        }
-        results.append(result)
+    Endpoint que procesa uno o más archivos PDF y devuelve los datos extraídos.
+    Valida la solicitud, lee cada PDF, selecciona la plantilla, extrae campos y calcula confianza.
+    """
+    started = perf_counter()
+    config = _load_config()
+
+    # Convertir opciones JSON en diccionario
+    opciones_dict: Dict[str, Any] = {}
+    if opciones:
+        try:
+            opciones_dict = json.loads(opciones)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=[{"field": "opciones", "error": "Debe ser JSON válido"}],
+            )
+
+    # Validar la solicitud
+    try:
+        validate_request(
+            files=files,
+            asesoria=asesoria,
+            forzar_ocr=bool(forzarOCR),
+            opciones=opciones_dict,
+            config=config,
+        )
+    except HTTPException:
+        raise
+    except Exception as ex:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ex))
+
+    reader = PDFReader(config=config)
+    processor = ProcessingService(
+        config=config,
+        templates_dir=str(Path(__file__).resolve().parents[3] / "templates"),
+    )
+
+    results: List[Dict[str, Any]] = []
+    for up_file in files:
+        pdf_bytes = await up_file.read()
+        read_obj = reader.read(
+            pdf_bytes=pdf_bytes,
+            force_ocr=bool(forzarOCR),
+            filename=up_file.filename,
+        )
+        processed = processor.process(
+            read_obj=read_obj,
+            asesoria=asesoria,
+            filename=up_file.filename,
+        )
+        processed["processing_ms"] = int((perf_counter() - started) * 1000)
+        results.append(processed)
+
     return results
