@@ -1,0 +1,9 @@
+# Default invoice template
+# This template defines default field extraction patterns when no vendor-specific template is found.
+fields:
+  issue_date:
+    pattern: "Fecha: (?P<value>\\d{2}/\\d{2}/\\d{4})"
+  issuer:
+    pattern: "Emisor: (?P<value>.+)"
+  nif:
+    pattern: "NIF: (?P<value>\\w+)"
