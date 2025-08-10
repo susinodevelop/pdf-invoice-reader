@@ -1,0 +1,15 @@
+fastapi==0.110.0
+uvicorn[standard]==0.27.1
+PyMuPDF==1.25.5
+pytesseract==0.3.10
+pillow==10.2.0
+camelot-py[cv]==0.11.0
+tabula-py==2.9.0
+pandas==2.2.0
+python-multipart==0.0.9
+requests==2.31.0
+pydantic==2.6.4
+
+# Note: Some of these packages (e.g. camelot, tabula) require additional system
+# dependencies such as Java (for tabula) and ghostscript (for camelot). When
+# building Docker images, ensure these are installed accordingly.
