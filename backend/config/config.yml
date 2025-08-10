@@ -1,0 +1,16 @@
+version: "0.1.0"
+env: "dev"
+api:
+  max_files: 25
+  max_file_size_mb: 20
+  max_total_size_mb: 200
+reader:
+  forzar_ocr_default: false
+  motores:
+    ocr_engine: "tesseract"
+    text_engine: "pymupdf"
+  thresholds:
+    text_density_min: 0.01
+    glyph_min: 50
+templates:
+  allow_fallback_to_default: true
