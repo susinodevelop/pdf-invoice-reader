@@ -1,0 +1,22 @@
+# Default configuration for the Invoice Reader API.
+
+# Whether to include detailed text layout (blocks and coordinates) in responses.
+return_layout: false
+
+# Whether to attempt table extraction; requires camelot or tabula and their system dependencies.
+return_tables: false
+
+# Force running OCR even if embedded text is detected in the PDF.
+ocr_force: false
+
+# Preferred OCR engine: tesseract, paddle or auto.
+ocr_engine: auto
+
+# Hint for OCR language: es for Spanish, gl for Galician, en for English.
+language_hint: null
+
+# Redact personal identifiable information such as emails, phone numbers and IBANs.
+redact_pii: false
+
+# Log level for the application.
+log_level: info
