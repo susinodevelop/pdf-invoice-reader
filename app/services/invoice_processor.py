@@ -180,12 +180,23 @@ class InvoiceProcessor:
         """Extract metadata and properties from a PyMuPDF document."""
         meta = doc.metadata or {}
         xmp = meta.get("metadata")
+        # Determine whether the document contains any extractable text.
+        # PyMuPDF's Document object does not expose an `is_textual` attribute,
+        # so we derive this by checking if any page yields non-empty text.
+        try:
+            has_text = any(
+                bool(doc.load_page(i).get_text("text").strip())
+                for i in range(doc.page_count)
+            )
+        except Exception:
+            # In case of error during text extraction, assume no text is present
+            has_text = False
         return {
             "producer": meta.get("producer"),
             "creation_date": meta.get("creationDate"),
             "mod_date": meta.get("modDate"),
             "is_encrypted": doc.is_encrypted,
-            "has_text": doc.is_textual,
+            "has_text": has_text,
             "xmp_metadata": xmp,
         }
 
