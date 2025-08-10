@@ -1,0 +1,6 @@
+fastapi>=0.103.2
+uvicorn>=0.23.0
+python-multipart>=0.0.6
+PyYAML>=6.0
+PyMuPDF>=1.21.1
+pytesseract>=0.3.10
