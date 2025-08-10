@@ -1,0 +1,5 @@
+version: 0.1.0
+env: dev
+frontend:
+  port: 3000
+backend_base_url: http://localhost:8080
